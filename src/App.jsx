@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Cadastro from './components/Cadastro';
 import GeradorConvite from './components/GeradorConvite';
 import ScannerCheckin from './components/ScannerCheckin';
@@ -18,6 +18,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
     const savedUser = AuthService.getCurrentUser();
@@ -71,6 +72,9 @@ function App() {
     setUser(userData);
   };
 
+  const isInvitePage = location.pathname.startsWith('/convite/');
+  const showNavbar = user && !isInvitePage;
+
   if (loading) {
     return (
       <div className="loading" style={{ minHeight: '100vh' }}>
@@ -83,18 +87,18 @@ function App() {
     <ThemeContext.Provider value={{ darkMode, toggleDarkMode: handleToggleDarkMode }}>
       <BrowserRouter>
         <div className="app">
-          {user && <Navbar 
+          {showNavbar && <Navbar 
             user={user} 
             onLogout={handleLogout}
             darkMode={darkMode}
             onToggleDarkMode={handleToggleDarkMode}
           />}
-          <main className="main-content" style={!user ? { display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}}>
+          <main className="main-content" style={isInvitePage ? { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 } : !user ? { display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}}>
             <Routes>
               <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={user ? <Navigate to="/cadastro" replace /> : <Login onLogin={handleLoginSuccess} showToast={showToast} />} />
               <Route path="/cadastro" element={<ProtectedRoute><Cadastro showToast={showToast} /></ProtectedRoute>} />
-              <Route path="/convite/:id" element={<ProtectedRoute><GeradorConvite showToast={showToast} /></ProtectedRoute>} />
+              <Route path="/convite/:id" element={<GeradorConvite showToast={showToast} />} />
               <Route path="/checkin" element={<ProtectedRoute><ScannerCheckin showToast={showToast} /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><DashboardAdmin showToast={showToast} /></ProtectedRoute>} />
             </Routes>
