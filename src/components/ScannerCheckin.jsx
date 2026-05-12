@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { Camera, XCircle, CheckCircle, RefreshCw, Keyboard } from 'lucide-react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Camera, XCircle, CheckCircle, RefreshCw, Keyboard, Loader } from 'lucide-react';
+import jsQR from 'jsqr';
 import FirebaseService, { HistoricoService } from '../services/firebase';
 
 export default function ScannerCheckin({ showToast }) {
@@ -11,64 +11,120 @@ export default function ScannerCheckin({ showToast }) {
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [cameraError, setCameraError] = useState(null);
-  const scannerRef = useRef(null);
-  const html5QrRef = useRef(null);
+  const [processing, setProcessing] = useState(false);
+  
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const animationRef = useRef(null);
 
-  useEffect(() => {
-    scannerRef.current = document.getElementById('qr-reader');
-    return () => stopScanner();
+  const stopCamera = useCallback(() => {
+    setScanning(false);
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
   }, []);
 
-  const stopScanner = () => {
-    setScanning(false);
-    try {
-      if (html5QrRef.current) {
-        html5QrRef.current.stop().catch(() => {});
-        html5QrRef.current = null;
+  useEffect(() => {
+    return () => stopCamera();
+  }, [stopCamera]);
+
+  const scanQRCode = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current || processing) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert'
+      });
+
+      if (code && code.data) {
+        processQRCode(code.data);
+        return;
       }
-    } catch (e) {}
-  };
+    }
+
+    if (scanning) {
+      animationRef.current = requestAnimationFrame(scanQRCode);
+    }
+  }, [scanning, processing]);
+
+  useEffect(() => {
+    if (scanning && !processing) {
+      animationRef.current = requestAnimationFrame(scanQRCode);
+    }
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [scanning, processing, scanQRCode]);
 
   const startCamera = async () => {
     try {
       setCameraError(null);
       setError(null);
-      stopScanner();
+      stopCamera();
 
-      html5QrRef.current = new Html5Qrcode('qr-reader');
-
-      await html5QrRef.current.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 220, height: 220 }
-        },
-        (decodedText) => {
-          processQRCode(decodedText);
-        },
-        () => {}
-      );
-
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+      
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      
       setScanning(true);
       setResult(null);
     } catch (err) {
-      console.error('Erro ao iniciar:', err);
-      setCameraError('Câmera não disponível. Use a entrada manual.');
-      showToast('Erro ao acessar câmera', 'error');
+      console.error('Erro câmera:', err);
+      if (err.name === 'NotAllowedError') {
+        setCameraError('Permissão de câmera negada. Permite o acesso nas configurações.');
+        showToast('Permissão negada', 'error');
+      } else if (err.name === 'NotFoundError') {
+        setCameraError('Câmera não encontrada neste dispositivo.');
+        showToast('Câmera não disponível', 'error');
+      } else {
+        setCameraError('Erro ao acessar câmera');
+        showToast('Erro ao acessar câmera', 'error');
+      }
     }
   };
 
   const processQRCode = async (data) => {
-    await stopScanner();
+    if (processing) return;
+    setProcessing(true);
+    stopCamera();
     setLoading(true);
     
     try {
       const guest = await FirebaseService.buscarConvidadoPorQRCode(data);
       
       if (!guest) {
-        setError('Convite não encontrado');
+        setError('Convite não encontrado no sistema');
         showToast('Convite não encontrado', 'error');
         setLoading(false);
+        setProcessing(false);
         return;
       }
       
@@ -82,10 +138,12 @@ export default function ScannerCheckin({ showToast }) {
         showToast('Check-in realizado!', 'success');
       }
     } catch (err) {
+      console.error('Erro:', err);
       setError('Erro ao processar');
-      showToast('Erro ao processar QR', 'error');
+      showToast('Erro ao processar', 'error');
     } finally {
       setLoading(false);
+      setProcessing(false);
     }
   };
 
@@ -94,6 +152,7 @@ export default function ScannerCheckin({ showToast }) {
     setError(null);
     setShowManualInput(false);
     setManualCode('');
+    setProcessing(false);
   };
 
   const handleManualSubmit = async (e) => {
@@ -106,11 +165,11 @@ export default function ScannerCheckin({ showToast }) {
   };
 
   return (
-    <div style={{ position: 'relative', zIndex: 100 }}>
+    <div>
       <h1 className="page-title">Check-in</h1>
-      <p className="page-subtitle">Escaneie o QR Code</p>
+      <p className="page-subtitle">Escaneie o QR Code do convidado</p>
       
-      <div className="scanner-container" style={{ position: 'relative', zIndex: 100 }}>
+      <div className="scanner-container">
         {result?.type === 'success' && (
           <div className="card">
             <div className="checkin-success">
@@ -118,7 +177,9 @@ export default function ScannerCheckin({ showToast }) {
               <h2>Entrada Liberada</h2>
               <p className="guest-name">{result.guest.nome}</p>
               <p className="mesa">Mesa {result.guest.mesa}</p>
-              <button className="btn btn-primary" onClick={resetScanner} style={{ marginTop: '2rem' }}>Novo Check-in</button>
+              <button className="btn btn-primary" onClick={resetScanner} style={{ marginTop: '2rem' }}>
+                <RefreshCw size={18} /> Novo Check-in
+              </button>
             </div>
           </div>
         )}
@@ -128,68 +189,123 @@ export default function ScannerCheckin({ showToast }) {
             <div className="checkin-error">
               <div className="icon"><XCircle size={60} /></div>
               <h2>Convite Já Utilizado</h2>
-              <p>{result.guest.nome} - Mesa {result.guest.mesa}</p>
-              <p>Em: {new Date(result.checkedInAt).toLocaleString()}</p>
-              <button className="btn btn-secondary" onClick={resetScanner} style={{ marginTop: '2rem' }}>Tentar Outro</button>
+              <p>{result.guest.nome}</p>
+              <p>Mesa {result.guest.mesa}</p>
+              <p>Check-in: {new Date(result.checkedInAt).toLocaleString()}</p>
+              <button className="btn btn-secondary" onClick={resetScanner} style={{ marginTop: '2rem' }}>
+                <RefreshCw size={18} /> Tentar Outro
+              </button>
             </div>
           </div>
         )}
         
         {!result && (
-          <div className="card" style={{ position: 'relative', zIndex: 100 }}>
-            <div style={{ 
-              width: '100%', 
-              height: '320px', 
-              background: '#000', 
+          <div className="card">
+            <div style={{
+              width: '100%',
+              height: '300px',
+              background: '#000',
               borderRadius: '12px',
               overflow: 'hidden',
               position: 'relative',
               marginBottom: '1.5rem'
             }}>
-              <div id="qr-reader" style={{ width: '100%', height: '100%' }}></div>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                style={{
+                  display: scanning ? 'block' : 'none',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover'
+                }}
+              />
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
               
               {!scanning && (
-                <div style={{ 
-                  position: 'absolute', inset: 0, 
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   background: 'linear-gradient(145deg, #1a1a1a, #2d2d2d)'
                 }}>
                   <Camera size={48} style={{ color: '#c9a227', marginBottom: '0.5rem' }} />
-                  <p style={{ color: '#999' }}>Inicie a câmera</p>
-                  {cameraError && <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.5rem' }}>{cameraError}</p>}
+                  <p style={{ color: '#999' }}>Câmera não iniciada</p>
+                  {cameraError && <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.5rem', textAlign: 'center', padding: '0 1rem' }}>{cameraError}</p>}
                 </div>
+              )}
+              
+              {scanning && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '200px',
+                  height: '200px',
+                  border: '3px solid #c9a227',
+                  borderRadius: '12px',
+                  pointerEvents: 'none',
+                  boxShadow: '0 0 0 4px rgba(201,162,39,0.3)'
+                }} />
               )}
             </div>
             
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', position: 'relative', zIndex: 100 }}>
-              {!scanning ? (
-                <>
-                  <button className="btn btn-primary" onClick={startCamera}><Camera size={18} /> Iniciar</button>
-                  <button className="btn btn-secondary" onClick={() => setShowManualInput(true)}><Keyboard size={18} /> Manual</button>
-                </>
-              ) : (
-                <button className="btn btn-secondary" onClick={stopCamera}><XCircle size={18} /> Parar</button>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                {!scanning ? (
+                  <>
+                    <button className="btn btn-primary btn-lg" onClick={startCamera}>
+                      <Camera size={20} /> Iniciar Câmera
+                    </button>
+                    <button className="btn btn-secondary btn-lg" onClick={() => setShowManualInput(true)}>
+                      <Keyboard size={20} /> Entrada Manual
+                    </button>
+                  </>
+                ) : (
+                  <button className="btn btn-secondary btn-lg" onClick={stopCamera}>
+                    <XCircle size={20} /> Parar
+                  </button>
+                )}
+              </div>
+              
+              {scanning && (
+                <p style={{ color: '#999', fontSize: '0.875rem', marginBottom: '1rem' }}>
+                  Posicione o QR Code dentro do quadro
+                </p>
               )}
+              
+              {showManualInput && (
+                <form onSubmit={handleManualSubmit} style={{ marginTop: '1rem' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Digite o ID do convite"
+                    value={manualCode}
+                    onChange={e => setManualCode(e.target.value)}
+                    style={{ maxWidth: '250px', marginBottom: '0.5rem' }}
+                  />
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                    <button type="submit" className="btn btn-primary">Validar</button>
+                    <button type="button" className="btn btn-secondary" onClick={() => setShowManualInput(false)}>Cancelar</button>
+                  </div>
+                </form>
+              )}
+              
+              {error && <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(239,68,68,0.2)', borderRadius: '8px', color: '#ef4444' }}>{error}</div>}
+              {loading && <div style={{ marginTop: '1rem' }}><Loader className="spinner" style={{ margin: '0 auto', animation: 'spin 1s linear infinite' }} /></div>}
             </div>
-            
-            {showManualInput && (
-              <form onSubmit={handleManualSubmit} style={{ marginTop: '1rem', textAlign: 'center' }}>
-                <input type="text" className="form-input" placeholder="ID do convite" value={manualCode} onChange={e => setManualCode(e.target.value)} style={{ maxWidth: '250px' }} />
-                <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                  <button type="submit" className="btn btn-primary btn-sm">Validar</button>
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowManualInput(false)}>Cancelar</button>
-                </div>
-              </form>
-            )}
-            
-            {error && <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(239,68,68,0.2)', borderRadius: '8px', color: '#ef4444', textAlign: 'center' }}>{error}</div>}
-            {loading && <div style={{ marginTop: '1rem', textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }}></div></div>}
           </div>
         )}
       </div>
       
-      <div className="card" style={{ marginTop: '2rem', maxWidth: '500px', margin: '2rem auto', position: 'relative', zIndex: 100 }}>
-        <p style={{ color: '#999', fontSize: '0.875rem' }}>
+      <div className="card" style={{ marginTop: '2rem', maxWidth: '500px', margin: '2rem auto' }}>
+        <p style={{ color: '#999', fontSize: '0.875rem', textAlign: 'center' }}>
           Use "Entrada Manual" se a câmera não funcionar.<br/>
           Cada QR Code pode ser usado apenas uma vez.
         </p>
