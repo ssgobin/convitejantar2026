@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modelo Convite ACIA 2026</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #1a1a1a;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .modelo {
+      width: 100%;
+      max-width: 600px;
+      aspect-ratio: 3/4;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      border: 2px solid #c9a227;
+      border-radius: 16px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      box-sizing: border-box;
+    }
+    .linha-dourada {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #c9a227, transparent);
+    }
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 48px;
+      font-weight: bold;
+      color: #c9a227;
+      letter-spacing: 8px;
+      margin-bottom: 10px;
+    }
+    .titulo {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      color: #ffffff;
+      margin-bottom: 40px;
+    }
+    .nome {
+      font-size: 20px;
+      color: #ffffff;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .empresa {
+      font-size: 14px;
+      color: #999999;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .info-box {
+      background: rgba(201, 162, 39, 0.15);
+      border-radius: 12px;
+      padding: 15px 40px;
+      display: flex;
+      gap: 40px;
+      margin-bottom: 30px;
+    }
+    .info-item {
+      text-align: center;
+    }
+    .info-label {
+      font-size: 10px;
+      color: #999999;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .info-value {
+      font-size: 20px;
+      color: #c9a227;
+      font-weight: bold;
+    }
+    .qr-area {
+      width: 120px;
+      height: 120px;
+      background: #ffffff;
+      border: 3px solid #c9a227;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .qr-placeholder {
+      color: #1a1a1a;
+      font-size: 10px;
+      text-align: center;
+    }
+    .instrucao {
+      font-size: 10px;
+      color: #666666;
+      margin-top: 20px;
+    }
+    .id-area {
+      font-family: monospace;
+      font-size: 8px;
+      color: #666666;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 style="color: white; text-align: center; margin-bottom: 20px;">Modelo de Convite - ACIA 2026</h2>
+    <p style="color: #999999; text-align: center; margin-bottom: 30px;">
+      Este é o layout esperado. O sistema sobrepõe: nome, mesa e QR Code sobre esta imagem.
+    </p>
+    
+    <div class="modelo">
+      <div class="linha-dourada"></div>
+      
+      <div class="logo">ACIA</div>
+      
+      <div class="nome">NOME DO CONVIDADO</div>
+      <div class="empresa">Nome da Empresa (se aplicável)</div>
+      
+      <div class="info-box">
+        <div class="info-item">
+          <div class="info-label">Mesa</div>
+          <div class="info-value">01</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Documento</div>
+          <div class="info-value">000.000.000-00</div>
+        </div>
+      </div>
+      
+      <div class="qr-area">
+        <div class="qr-placeholder">[QR CODE]<br>aqui</div>
+      </div>
+      
+      <div class="instrucao">Apresente este QR Code na entrada do evento</div>
+      <div class="id-area">ID: ACIA2026-XXXXXXXXXXXXX</div>
+    </div>
+    
+    <div style="margin-top: 30px; padding: 20px; background: #2d2d2d; border-radius: 8px;">
+      <h3 style="color: #c9a227; margin-top: 0;">Especificações recomendadas:</h3>
+      <ul style="color: #999999; line-height: 1.8;">
+        <li><strong>Formato:</strong> PNG com transparência</li>
+        <li><strong>Tamanho:</strong> 1200x1600 pixels (proporção 3:4)</li>
+        <li><strong>Fundo:</strong> Escuro (preto ou cinza escuro)</li>
+        <li><strong>Elementos visuais:</strong> Pode incluir logos, bordas douradas</li>
+        <li><strong>Área do texto:</strong> Deixe espaço no centro para nome do convidado</li>
+        <li><strong>Área do QR:</strong> Reserve espaço no rodapé para o QR Code</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
