@@ -1,21 +1,25 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Download, Share2, FileText, ArrowLeft, QrCode } from 'lucide-react';
+import { Download, Share2, FileText, ArrowLeft, QrCode, RefreshCw } from 'lucide-react';
 import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import FirebaseService from '../services/firebase';
 
-export default function GeradorConvite({ showToast }) {
+const defaultShowToast = () => {};
+
+export default function GeradorConvite({ showToast = defaultShowToast }) {
   const { id } = useParams();
   const [convidado, setConvidado] = useState(null);
   const [loading, setLoading] = useState(true);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [error, setError] = useState(null);
   const inviteRef = useRef(null);
 
   useEffect(() => {
     async function carregarConvidado() {
       try {
+        setError(null);
         const guest = await FirebaseService.buscarConvidadoPorId(id);
         if (guest) {
           setConvidado(guest);
@@ -33,6 +37,7 @@ export default function GeradorConvite({ showToast }) {
         }
       } catch (error) {
         console.error('Erro ao carregar convidado:', error);
+        setError('Erro ao carregar convite. Tente novamente mais tarde.');
         showToast('Erro ao carregar convite', 'error');
       } finally {
         setLoading(false);
@@ -97,6 +102,28 @@ export default function GeradorConvite({ showToast }) {
     return (
       <div className="loading">
         <div className="spinner"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="invite-container">
+        <div className="card">
+          <div className="empty-state">
+            <QrCode size={64} />
+            <h3>Erro</h3>
+            <p>{error}</p>
+            <button 
+              className="btn btn-primary" 
+              style={{ marginTop: '1rem' }}
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw size={18} />
+              Tentar Novamente
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

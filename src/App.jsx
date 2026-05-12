@@ -98,7 +98,7 @@ function App() {
               <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={user ? <Navigate to="/cadastro" replace /> : <Login onLogin={handleLoginSuccess} showToast={showToast} />} />
               <Route path="/cadastro" element={<ProtectedRoute><Cadastro showToast={showToast} /></ProtectedRoute>} />
-              <Route path="/convite/:id" element={<GeradorConvite showToast={showToast} />} />
+              <Route path="/convite/:id" element={<GeradorConvite showToast={showToast || (() => {})} />} />
               <Route path="/checkin" element={<ProtectedRoute><ScannerCheckin showToast={showToast} /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><DashboardAdmin showToast={showToast} /></ProtectedRoute>} />
             </Routes>
