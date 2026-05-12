@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   Users, CheckCircle, Clock, LayoutGrid, 
   Search, Edit, Trash2, QrCode, Download,
-  FileSpreadsheet, FileText, X, RefreshCw, Settings
+  FileSpreadsheet, FileText, X, RefreshCw, Settings,
+  ExternalLink, Share2, FileDown
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -131,6 +132,21 @@ export default function DashboardAdmin({ showToast }) {
       console.error('Erro ao regenerar QR:', error);
       showToast('Erro ao regenerar QR Code', 'error');
     }
+  };
+
+  const viewInvite = (id) => {
+    window.open(`/convite/${id}`, '_blank');
+  };
+
+  const shareWhatsApp = (guest) => {
+    const mensagem = encodeURIComponent(
+      `Olá ${guest.nome}!\n\nVocê foi convidado para o Jantar dos Empresários ACIA 2026.\n\nMesa: ${guest.mesa}\n\nAcesse seu convite: ${window.location.origin}/convite/${guest.id}`
+    );
+    window.open(`https://wa.me/?text=${mensagem}`, '_blank');
+  };
+
+  const downloadPDF = (id) => {
+    window.open(`/convite/${id}`, '_blank');
   };
 
   const exportExcel = () => {
@@ -352,6 +368,27 @@ export default function DashboardAdmin({ showToast }) {
                     </td>
                     <td>
                       <div className="actions-cell">
+                        <button
+                          className="icon-btn"
+                          title="Visualizar Convite"
+                          onClick={() => viewInvite(guest.id)}
+                        >
+                          <ExternalLink size={16} />
+                        </button>
+                        <button
+                          className="icon-btn"
+                          title="Compartilhar WhatsApp"
+                          onClick={() => shareWhatsApp(guest)}
+                        >
+                          <Share2 size={16} />
+                        </button>
+                        <button
+                          className="icon-btn"
+                          title="Baixar PDF"
+                          onClick={() => downloadPDF(guest.id)}
+                        >
+                          <FileDown size={16} />
+                        </button>
                         <button
                           className="icon-btn"
                           title="Editar"
