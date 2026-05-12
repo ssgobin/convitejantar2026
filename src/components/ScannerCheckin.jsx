@@ -172,13 +172,15 @@ export default function ScannerCheckin({ showToast }) {
         
         {!result && (
           <div className="card">
-            <div id={scannerId} style={{ 
+            <div id={scannerId} className="scanner-video" style={{ 
               width: '100%', 
               minHeight: '300px',
+              maxHeight: '400px',
               background: '#000',
               borderRadius: '12px',
               overflow: 'hidden',
-              position: 'relative'
+              position: 'relative',
+              zIndex: 1
             }}>
               {!scanning && (
                 <div style={{ 
