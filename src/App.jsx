@@ -13,7 +13,7 @@ const ThemeContext = createContext();
 
 export const useTheme = () => useContext(ThemeContext);
 
-function App() {
+function AppContent() {
   const [toast, setToast] = useState(null);
   const [user, setUser] = useState(null);
   const [darkMode, setDarkMode] = useState(false);
@@ -84,27 +84,39 @@ function App() {
   }
 
   return (
+    <div className="app">
+      {showNavbar && <Navbar 
+        user={user} 
+        onLogout={handleLogout}
+        darkMode={darkMode}
+        onToggleDarkMode={handleToggleDarkMode}
+      />}
+      <main className="main-content" style={isInvitePage ? { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 } : !user ? { display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}}>
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/login" element={user ? <Navigate to="/cadastro" replace /> : <Login onLogin={handleLoginSuccess} showToast={showToast} />} />
+          <Route path="/cadastro" element={<ProtectedRoute><Cadastro showToast={showToast} /></ProtectedRoute>} />
+          <Route path="/convite/:id" element={<GeradorConvite showToast={showToast || (() => {})} />} />
+          <Route path="/checkin" element={<ProtectedRoute><ScannerCheckin showToast={showToast} /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><DashboardAdmin showToast={showToast} /></ProtectedRoute>} />
+        </Routes>
+      </main>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    </div>
+  );
+}
+
+function App() {
+  const [darkMode, setDarkMode] = useState(false);
+
+  const handleToggleDarkMode = () => {
+    setDarkMode(prev => !prev);
+  };
+
+  return (
     <ThemeContext.Provider value={{ darkMode, toggleDarkMode: handleToggleDarkMode }}>
       <BrowserRouter>
-        <div className="app">
-          {showNavbar && <Navbar 
-            user={user} 
-            onLogout={handleLogout}
-            darkMode={darkMode}
-            onToggleDarkMode={handleToggleDarkMode}
-          />}
-          <main className="main-content" style={isInvitePage ? { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 } : !user ? { display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="/login" element={user ? <Navigate to="/cadastro" replace /> : <Login onLogin={handleLoginSuccess} showToast={showToast} />} />
-              <Route path="/cadastro" element={<ProtectedRoute><Cadastro showToast={showToast} /></ProtectedRoute>} />
-              <Route path="/convite/:id" element={<GeradorConvite showToast={showToast || (() => {})} />} />
-              <Route path="/checkin" element={<ProtectedRoute><ScannerCheckin showToast={showToast} /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute><DashboardAdmin showToast={showToast} /></ProtectedRoute>} />
-            </Routes>
-          </main>
-          {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-        </div>
+        <AppContent />
       </BrowserRouter>
     </ThemeContext.Provider>
   );
