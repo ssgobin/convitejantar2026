@@ -11,76 +11,68 @@ export default function ScannerCheckin({ showToast }) {
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualCode, setManualCode] = useState('');
   const [cameraError, setCameraError] = useState(null);
-  const scannerRef = useRef(null);
-  const html5QrCodeRef = useRef(null);
+  const scannerId = 'qr-scanner-container';
 
   useEffect(() => {
     return () => {
-      if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(() => {});
-      }
+      stopScanner();
     };
   }, []);
 
-  const startCamera = async () => {
+  const startScanner = async () => {
     try {
       setCameraError(null);
+      setError(null);
+      stopScanner();
+
+      const html5QrCode = new Html5Qrcode(scannerId);
       
-      if (!scannerRef.current) {
-        scannerRef.current = document.getElementById('qr-reader');
-      }
-      
-      if (html5QrCodeRef.current) {
-        try {
-          await html5QrCodeRef.current.stop();
-        } catch (e) {}
-      }
-      
-      html5QrCodeRef.current = new Html5Qrcode('qr-reader');
-      
-      const devices = await Html5Qrcode.getCameras();
-      if (devices && devices.length > 0) {
-        const cameraId = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('traseira'))?.id || devices[0].id;
-        
-        await html5QrCodeRef.current.start(
-          cameraId,
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-          },
-          (decodedText) => {
-            processQRCode(decodedText);
-          },
-          () => {}
-        );
-        
-        setScanning(true);
-        setResult(null);
-        setError(null);
-      } else {
-        setCameraError('Nenhuma câmera encontrada');
-        showToast('Nenhuma câmera encontrada', 'error');
-      }
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        },
+        (decodedText) => {
+          processQRCode(decodedText);
+        },
+        () => {}
+      ).catch(err => {
+        throw err;
+      });
+
+      setScanning(true);
+      setResult(null);
     } catch (err) {
       console.error('Erro ao iniciar câmera:', err);
-      setCameraError('Erro ao acessar câmera');
-      showToast('Erro ao acessar câmera. Verifique as permissões.', 'error');
+      if (err.toString().includes('NotAllowedError')) {
+        setCameraError('Permissão de câmera negada');
+        showToast('Permissão de câmera negada. Allow access and try again.', 'error');
+      } else if (err.toString().includes('NotFoundError') || err.toString().includes('Requested device not found')) {
+        setCameraError('Câmera não encontrada');
+        showToast('Câmera não disponível neste dispositivo. Use entrada manual.', 'error');
+      } else {
+        setCameraError('Erro ao iniciar câmera');
+        showToast('Erro ao acessar câmera', 'error');
+      }
     }
   };
 
-  const stopCamera = async () => {
-    if (html5QrCodeRef.current) {
-      try {
-        await html5QrCodeRef.current.stop();
-      } catch (e) {}
-    }
+  const stopScanner = async () => {
     setScanning(false);
+    try {
+      const html5QrCode = new Html5Qrcode(scannerId);
+      if (html5QrCode.isScanning) {
+        await html5QrCode.stop();
+      }
+    } catch (err) {
+      // Ignore stop errors
+    }
   };
 
   const processQRCode = async (data) => {
+    await stopScanner();
     setLoading(true);
-    await stopCamera();
     
     try {
       const guest = await FirebaseService.buscarConvidadoPorQRCode(data);
@@ -122,7 +114,6 @@ export default function ScannerCheckin({ showToast }) {
     setError(null);
     setShowManualInput(false);
     setManualCode('');
-    startCamera();
   };
 
   const handleManualSubmit = async (e) => {
@@ -181,17 +172,16 @@ export default function ScannerCheckin({ showToast }) {
         
         {!result && (
           <div className="card">
-            <div className="scanner-video" id="qr-reader" style={{ 
+            <div id={scannerId} style={{ 
               width: '100%', 
               minHeight: '300px',
-              maxHeight: '400px',
-              position: 'relative',
               background: '#000',
               borderRadius: '12px',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              position: 'relative'
             }}>
               {!scanning && (
-                <div className="scanner-placeholder" style={{ 
+                <div style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
                   alignItems: 'center', 
@@ -200,9 +190,9 @@ export default function ScannerCheckin({ showToast }) {
                   background: 'linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%)'
                 }}>
                   <Camera size={64} style={{ color: 'var(--gold)', marginBottom: '1rem' }} />
-                  <p style={{ color: 'var(--gray-400)' }}>Câmera não iniciada</p>
+                  <p style={{ color: 'var(--gray-400)', textAlign: 'center' }}>Câmera não iniciada</p>
                   {cameraError && (
-                    <p style={{ color: 'var(--error)', marginTop: '0.5rem', fontSize: '0.875rem' }}>{cameraError}</p>
+                    <p style={{ color: 'var(--error)', marginTop: '0.5rem', fontSize: '0.875rem', textAlign: 'center', padding: '0 1rem' }}>{cameraError}</p>
                   )}
                 </div>
               )}
@@ -211,7 +201,7 @@ export default function ScannerCheckin({ showToast }) {
             <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
               {!scanning ? (
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <button className="btn btn-primary btn-lg" onClick={startCamera}>
+                  <button className="btn btn-primary btn-lg" onClick={startScanner}>
                     <Camera size={20} />
                     Iniciar Câmera
                   </button>
@@ -225,7 +215,7 @@ export default function ScannerCheckin({ showToast }) {
                   <p style={{ color: 'var(--gray-400)', marginBottom: '1rem' }}>
                     Posicione o QR Code em frente à câmera
                   </p>
-                  <button className="btn btn-secondary" onClick={stopCamera}>
+                  <button className="btn btn-secondary" onClick={stopScanner}>
                     <XCircle size={18} />
                     Parar Scanner
                   </button>
