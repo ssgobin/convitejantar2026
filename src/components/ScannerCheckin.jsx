@@ -10,6 +10,7 @@ export default function ScannerCheckin({ showToast }) {
   const [loading, setLoading] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualCode, setManualCode] = useState('');
+  const [cameraError, setCameraError] = useState(null);
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
 
@@ -23,29 +24,47 @@ export default function ScannerCheckin({ showToast }) {
 
   const startCamera = async () => {
     try {
+      setCameraError(null);
+      
       if (!scannerRef.current) {
         scannerRef.current = document.getElementById('qr-reader');
       }
       
+      if (html5QrCodeRef.current) {
+        try {
+          await html5QrCodeRef.current.stop();
+        } catch (e) {}
+      }
+      
       html5QrCodeRef.current = new Html5Qrcode('qr-reader');
       
-      await html5QrCodeRef.current.start(
-        { facingMode: 'environment' },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
-        (decodedText) => {
-          processQRCode(decodedText);
-        },
-        () => {}
-      );
-      
-      setScanning(true);
-      setResult(null);
-      setError(null);
+      const devices = await Html5Qrcode.getCameras();
+      if (devices && devices.length > 0) {
+        const cameraId = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('traseira'))?.id || devices[0].id;
+        
+        await html5QrCodeRef.current.start(
+          cameraId,
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+          },
+          (decodedText) => {
+            processQRCode(decodedText);
+          },
+          () => {}
+        );
+        
+        setScanning(true);
+        setResult(null);
+        setError(null);
+      } else {
+        setCameraError('Nenhuma câmera encontrada');
+        showToast('Nenhuma câmera encontrada', 'error');
+      }
     } catch (err) {
       console.error('Erro ao iniciar câmera:', err);
+      setCameraError('Erro ao acessar câmera');
       showToast('Erro ao acessar câmera. Verifique as permissões.', 'error');
     }
   };
@@ -162,11 +181,29 @@ export default function ScannerCheckin({ showToast }) {
         
         {!result && (
           <div className="card">
-            <div className="scanner-video" id="qr-reader" style={{ width: '100%', minHeight: '300px' }}>
+            <div className="scanner-video" id="qr-reader" style={{ 
+              width: '100%', 
+              minHeight: '300px',
+              maxHeight: '400px',
+              position: 'relative',
+              background: '#000',
+              borderRadius: '12px',
+              overflow: 'hidden'
+            }}>
               {!scanning && (
-                <div className="scanner-placeholder">
-                  <Camera size={64} />
-                  <p>Câmera não iniciada</p>
+                <div className="scanner-placeholder" style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: '300px',
+                  background: 'linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 100%)'
+                }}>
+                  <Camera size={64} style={{ color: 'var(--gold)', marginBottom: '1rem' }} />
+                  <p style={{ color: 'var(--gray-400)' }}>Câmera não iniciada</p>
+                  {cameraError && (
+                    <p style={{ color: 'var(--error)', marginTop: '0.5rem', fontSize: '0.875rem' }}>{cameraError}</p>
+                  )}
                 </div>
               )}
             </div>
