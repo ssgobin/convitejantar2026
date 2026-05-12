@@ -77,7 +77,19 @@ export default function ScannerCheckin({ showToast }) {
     try {
       setCameraError(null);
       setError(null);
-      stopCamera();
+      
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+      
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { 
@@ -114,7 +126,6 @@ export default function ScannerCheckin({ showToast }) {
   const processQRCode = async (data) => {
     if (processing) return;
     setProcessing(true);
-    stopCamera();
     setLoading(true);
     
     try {
@@ -147,12 +158,13 @@ export default function ScannerCheckin({ showToast }) {
     }
   };
 
-  const resetScanner = () => {
+  const resetScanner = async () => {
     setResult(null);
     setError(null);
     setShowManualInput(false);
     setManualCode('');
     setProcessing(false);
+    await startCamera();
   };
 
   const handleManualSubmit = async (e) => {

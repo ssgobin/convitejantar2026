@@ -53,6 +53,25 @@ export default function DashboardAdmin({ showToast }) {
 
   useEffect(() => {
     loadData();
+    
+    const unsubscribe = FirebaseService.onSnapshotConvidados((guests) => {
+      setConvidados(guests);
+      const presentes = guests.filter(g => g.checkedIn === true).length;
+      const pendentes = guests.length - presentes;
+      const mesasOcupadas = new Set(guests.map(g => g.mesa)).size;
+      setStats({
+        total: guests.length,
+        confirmados: guests.length,
+        presentes,
+        pendentes,
+        mesasOcupadas
+      });
+      const allMesas = Array.from(new Set(guests.map(g => g.mesa))).sort();
+      setMesas(allMesas);
+      setLoading(false);
+    });
+    
+    return () => unsubscribe();
   }, [loadData]);
 
   const filteredConvidados = convidados.filter(guest => {
