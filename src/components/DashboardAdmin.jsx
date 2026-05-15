@@ -77,8 +77,8 @@ export default function DashboardAdmin({ showToast }) {
   const filteredConvidados = convidados.filter(guest => {
     const matchesSearch = !searchTerm || 
       guest.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      guest.documento.includes(searchTerm) ||
-      (guest.empresa && guest.empresa.toLowerCase().includes(searchTerm.toLowerCase()));
+      guest.telefone.includes(searchTerm) ||
+      guest.mesa.includes(searchTerm);
     
     const matchesMesa = !filterMesa || guest.mesa === filterMesa;
     
@@ -103,10 +103,7 @@ export default function DashboardAdmin({ showToast }) {
     try {
       await FirebaseService.atualizarConvidado(editModal, {
         nome: formData.nome,
-        documento: formData.documento.replace(/\D/g, ''),
-        empresa: formData.empresa,
         telefone: formData.telefone,
-        email: formData.email,
         mesa: formData.mesa
       });
       
@@ -171,10 +168,7 @@ export default function DashboardAdmin({ showToast }) {
   const exportExcel = () => {
     const data = filteredConvidados.map(guest => ({
       Nome: guest.nome,
-      Documento: formatarDocumento(guest.documento, guest.tipoDocumento),
-      Empresa: guest.empresa || '-',
       Telefone: guest.telefone,
-      Email: guest.email,
       Mesa: guest.mesa,
       Status: guest.checkedIn ? 'Presente' : 'Pendente',
       'Check-in': guest.checkedInAt ? new Date(guest.checkedInAt).toLocaleString('pt-BR') : '-'
@@ -190,10 +184,7 @@ export default function DashboardAdmin({ showToast }) {
   const exportCSV = () => {
     const data = filteredConvidados.map(guest => ({
       nome: guest.nome,
-      documento: formatarDocumento(guest.documento, guest.tipoDocumento),
-      empresa: guest.empresa || '',
       telefone: guest.telefone,
-      email: guest.email,
       mesa: guest.mesa,
       status: guest.checkedIn ? 'presente' : 'pendente',
       checkInAt: guest.checkedInAt || ''
@@ -222,15 +213,14 @@ export default function DashboardAdmin({ showToast }) {
     
     const tableData = filteredConvidados.map(guest => [
       guest.nome,
-      formatarDocumento(guest.documento, guest.tipoDocumento),
-      guest.empresa || '-',
+      guest.telefone,
       guest.mesa,
       guest.checkedIn ? 'Presente' : 'Pendente'
     ]);
 
     doc.autoTable({
       startY: 40,
-      head: [['Nome', 'Documento', 'Empresa', 'Mesa', 'Status']],
+      head: [['Nome', 'Telefone', 'Mesa', 'Status']],
       body: tableData,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [201, 162, 39] }
