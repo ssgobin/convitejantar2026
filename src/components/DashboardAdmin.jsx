@@ -77,8 +77,8 @@ export default function DashboardAdmin({ showToast }) {
   const filteredConvidados = convidados.filter(guest => {
     const matchesSearch = !searchTerm || 
       guest.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      guest.telefone.includes(searchTerm) ||
-      guest.mesa.includes(searchTerm);
+      (guest.telefone && guest.telefone.includes(searchTerm)) ||
+      (guest.mesa && guest.mesa.includes(searchTerm));
     
     const matchesMesa = !filterMesa || guest.mesa === filterMesa;
     
@@ -155,10 +155,12 @@ export default function DashboardAdmin({ showToast }) {
   };
 
   const shareWhatsApp = (guest) => {
+    const telefone = guest.telefone ? guest.telefone.replace(/\D/g, '') : '';
     const mensagem = encodeURIComponent(
-      `Olá ${guest.nome}!\n\nVocê foi convidado para o Jantar dos Empresários ACIA 2026.\n\nMesa: ${guest.mesa}\n\nAcesse seu convite: ${window.location.origin}/convite/${guest.id}`
+      `Olá ${guest.nome}!\n\nVocê foi convidado para o Jantar dos Empresários ACIA 2026.\n\nMesa: ${guest.mesa || '-'}\n\nAcesse seu convite: ${window.location.origin}/convite/${guest.id}`
     );
-    window.open(`https://wa.me/?text=${mensagem}`, '_blank');
+    const url = telefone ? `https://wa.me/55${telefone}?text=${mensagem}` : `https://wa.me/?text=${mensagem}`;
+    window.open(url, '_blank');
   };
 
   const downloadPDF = (id) => {
@@ -312,7 +314,7 @@ export default function DashboardAdmin({ showToast }) {
             <Search size={18} />
             <input
               type="text"
-              placeholder="Buscar por nome, documento ou empresa..."
+              placeholder="Buscar por nome, telefone ou mesa..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -365,10 +367,10 @@ export default function DashboardAdmin({ showToast }) {
                 {filteredConvidados.map(guest => (
                   <tr key={guest.id}>
                     <td>{guest.nome}</td>
-                    <td>{formatarDocumento(guest.documento, guest.tipoDocumento)}</td>
+                    <td>{guest.documento ? formatarDocumento(guest.documento, guest.tipoDocumento) : '-'}</td>
                     <td>{guest.empresa || '-'}</td>
-                    <td>{guest.telefone}</td>
-                    <td>{guest.email}</td>
+                    <td>{guest.telefone || '-'}</td>
+                    <td>{guest.email || '-'}</td>
                     <td style={{ color: 'var(--gold)', fontWeight: '600' }}>{guest.mesa}</td>
                     <td>
                       <span className={`status-badge ${guest.checkedIn ? 'present' : 'pending'}`}>
@@ -490,29 +492,7 @@ export default function DashboardAdmin({ showToast }) {
               </div>
             </div>
             
-            <div className="form-group">
-              <label className="form-label">Email *</label>
-              <input
-                type="email"
-                name="email"
-                className="form-input"
-                value={formData.email || ''}
-                onChange={handleEditChange}
-              />
-            </div>
             
-            {formData.tipoDocumento === 'CNPJ' && (
-              <div className="form-group">
-                <label className="form-label">Empresa</label>
-                <input
-                  type="text"
-                  name="empresa"
-                  className="form-input"
-                  value={formData.empresa || ''}
-                  onChange={handleEditChange}
-                />
-              </div>
-            )}
             
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setEditModal(null)}>
