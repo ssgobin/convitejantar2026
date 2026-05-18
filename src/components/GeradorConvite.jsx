@@ -49,12 +49,16 @@ export default function GeradorConvite({ showToast = defaultShowToast }) {
 
   const gerarPDF = async () => {
     if (!inviteRef.current) return;
-    
+
     try {
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const canvas = await html2canvas(inviteRef.current, {
         scale: 2,
         backgroundColor: '#1a1a1a',
-        logging: false
+        logging: false,
+        useCORS: true,
+        allowTaint: true
       });
       
       const imgData = canvas.toDataURL('image/png');
@@ -127,7 +131,7 @@ export default function GeradorConvite({ showToast = defaultShowToast }) {
 
   return (
     <div className="invite-container" style={{ maxWidth: '500px' }}>
-      <div className="invite-preview" style={{ padding: '3rem 2rem' }}>
+      <div className="invite-preview" ref={inviteRef} style={{ padding: '3rem 2rem', background: '#1a1a1a' }}>
         <img 
           src="/Logo.png" 
           alt="Logo ACIA" 
@@ -168,7 +172,7 @@ export default function GeradorConvite({ showToast = defaultShowToast }) {
       </div>
       
       <div style={{ marginTop: '1.5rem' }}>
-        <button className="btn btn-primary" onClick={gerarPDF}>
+        <button className="btn btn-primary" onClick={gerarPDF} disabled={!inviteRef.current}>
           <FileText size={18} />
           Baixar PDF
         </button>
