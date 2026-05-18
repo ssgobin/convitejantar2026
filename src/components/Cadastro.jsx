@@ -45,17 +45,7 @@ export default function Cadastro({ showToast }) {
       newErrors.nome = 'Nome é obrigatório';
     }
     
-    if (!formData.telefone.trim()) {
-      newErrors.telefone = 'Telefone é obrigatório';
-    } else if (formData.telefone.replace(/\D/g, '').length < 10) {
-      newErrors.telefone = 'Telefone inválido';
-    }
-    
-    if (!formData.mesa.trim()) {
-      newErrors.mesa = 'Número da mesa é obrigatório';
-    }
-    
-    setErrors(newErrors);
+setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -135,7 +125,7 @@ export default function Cadastro({ showToast }) {
           
           <div className="form-row">
             <div className="form-group">
-              <label className="form-label">Telefone *</label>
+              <label className="form-label">Telefone</label>
               <input
                 type="tel"
                 name="telefone"
