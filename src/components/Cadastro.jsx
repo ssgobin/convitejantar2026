@@ -131,9 +131,23 @@ export default function Cadastro({ showToast }) {
               />
               {errors.nome && <span style={{ color: 'var(--error)', fontSize: '0.875rem' }}>{errors.nome}</span>}
             </div>
-          </div>
+</div>
           
-<div className="form-row">
+          <div className="form-row">
+            <div className="form-group">
+              <label className="form-label">Telefone *</label>
+              <input
+                type="tel"
+                name="telefone"
+                className="form-input"
+                placeholder="(00) 00000-0000"
+                value={formData.telefone}
+                onChange={handleChange}
+                maxLength={15}
+              />
+              {errors.telefone && <span style={{ color: 'var(--error)', fontSize: '0.875rem' }}>{errors.telefone}</span>}
+            </div>
+            
             <div className="form-group">
               <label className="form-label">Número da Mesa *</label>
               <input
