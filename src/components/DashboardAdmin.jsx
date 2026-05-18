@@ -29,9 +29,10 @@ export default function DashboardAdmin({ showToast }) {
   const [filterStatus, setFilterStatus] = useState('');
   const [mesas, setMesas] = useState([]);
   const [editModal, setEditModal] = useState(null);
-  const [formData, setFormData] = useState({});
   const [showConfig, setShowConfig] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
+  const [formData, setFormData] = useState({});
+  const cargos = ['Convidado', 'Autoridades', 'Patrocinadores', 'Entidades'];
 
   const loadData = useCallback(async () => {
     try {
@@ -104,7 +105,8 @@ export default function DashboardAdmin({ showToast }) {
       await FirebaseService.atualizarConvidado(editModal, {
         nome: formData.nome,
         telefone: formData.telefone,
-        mesa: formData.mesa
+        mesa: formData.mesa,
+        cargo: formData.cargo
       });
       
       await HistoricoService.adicionarAcesso('edicao', `Convidado: ${formData.nome}`);
@@ -354,6 +356,7 @@ export default function DashboardAdmin({ showToast }) {
               <thead>
                 <tr>
                   <th>Nome</th>
+                  <th>Cargo</th>
                   <th>Documento</th>
                   <th>Empresa</th>
                   <th>Telefone</th>
@@ -366,7 +369,20 @@ export default function DashboardAdmin({ showToast }) {
               <tbody>
                 {filteredConvidados.map(guest => (
                   <tr key={guest.id}>
-                    <td>{guest.nome}</td>
+                    <td>
+                      {guest.nome}
+                      {guest.cargo && guest.cargo !== 'Convidado' && (
+                        <span style={{ 
+                          display: 'block', 
+                          fontSize: '0.75rem', 
+                          color: '#c9a227',
+                          fontWeight: '600'
+                        }}>
+                          {guest.cargo}
+                        </span>
+                      )}
+                    </td>
+                    <td>{guest.cargo || '-'}</td>
                     <td>{guest.documento ? formatarDocumento(guest.documento, guest.tipoDocumento) : '-'}</td>
                     <td>{guest.empresa || '-'}</td>
                     <td>{guest.telefone || '-'}</td>
@@ -490,6 +506,20 @@ export default function DashboardAdmin({ showToast }) {
                   onChange={handleEditChange}
                 />
               </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Categoria *</label>
+              <select
+                name="cargo"
+                className="form-input"
+                value={formData.cargo || 'Convidado'}
+                onChange={handleEditChange}
+              >
+                {cargos.map(cargo => (
+                  <option key={cargo} value={cargo}>{cargo}</option>
+                ))}
+              </select>
             </div>
             
             

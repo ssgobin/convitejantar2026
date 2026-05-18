@@ -17,8 +17,11 @@ export default function Cadastro({ showToast }) {
   const [formData, setFormData] = useState({
     nome: '',
     telefone: '',
-    mesa: ''
+    mesa: '',
+    cargo: 'Convidado'
   });
+
+  const cargos = ['Convidado', 'Autoridades', 'Patrocinadores', 'Entidades'];
   const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
@@ -73,6 +76,7 @@ export default function Cadastro({ showToast }) {
         nome: formData.nome.trim(),
         telefone: formData.telefone,
         mesa: formData.mesa.trim(),
+        cargo: formData.cargo,
         qrCodeId
       });
       
@@ -89,7 +93,8 @@ export default function Cadastro({ showToast }) {
       setFormData({
         nome: '',
         telefone: '',
-        mesa: ''
+        mesa: '',
+        cargo: 'Convidado'
       });
     } catch (error) {
       console.error('Erro ao cadastrar:', error);
@@ -128,21 +133,7 @@ export default function Cadastro({ showToast }) {
             </div>
           </div>
           
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Telefone *</label>
-              <input
-                type="tel"
-                name="telefone"
-                className="form-input"
-                placeholder="(00) 00000-0000"
-                value={formData.telefone}
-                onChange={handleChange}
-                maxLength={15}
-              />
-              {errors.telefone && <span style={{ color: 'var(--error)', fontSize: '0.875rem' }}>{errors.telefone}</span>}
-            </div>
-            
+<div className="form-row">
             <div className="form-group">
               <label className="form-label">Número da Mesa *</label>
               <input
@@ -155,6 +146,21 @@ export default function Cadastro({ showToast }) {
                 style={{ maxWidth: '200px' }}
               />
               {errors.mesa && <span style={{ color: 'var(--error)', fontSize: '0.875rem' }}>{errors.mesa}</span>}
+            </div>
+            
+            <div className="form-group">
+              <label className="form-label">Categoria *</label>
+              <select
+                name="cargo"
+                className="form-input"
+                value={formData.cargo}
+                onChange={handleChange}
+                style={{ maxWidth: '200px' }}
+              >
+                {cargos.map(cargo => (
+                  <option key={cargo} value={cargo}>{cargo}</option>
+                ))}
+              </select>
             </div>
           </div>
           

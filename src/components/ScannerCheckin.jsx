@@ -12,6 +12,8 @@ export default function ScannerCheckin({ showToast }) {
   const [manualCode, setManualCode] = useState('');
   const [cameraError, setCameraError] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingGuest, setPendingGuest] = useState(null);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -143,10 +145,10 @@ export default function ScannerCheckin({ showToast }) {
         setResult({ type: 'already-used', guest, checkedInAt: guest.checkedInAt });
         showToast('Este convite já foi utilizado', 'warning');
       } else {
-        await FirebaseService.realizarCheckIn(guest.id);
-        await HistoricoService.adicionarAcesso('checkin', `${guest.nome} - Mesa ${guest.mesa}`);
-        setResult({ type: 'success', guest: { ...guest, checkedIn: true } });
-        showToast('Check-in realizado!', 'success');
+        setPendingGuest(guest);
+        setShowConfirmModal(true);
+        setLoading(false);
+        setProcessing(false);
       }
     } catch (err) {
       console.error('Erro:', err);
@@ -174,6 +176,31 @@ export default function ScannerCheckin({ showToast }) {
       setShowManualInput(false);
       setManualCode('');
     }
+  };
+
+  const confirmCheckIn = async () => {
+    if (!pendingGuest) return;
+    setShowConfirmModal(false);
+    setLoading(true);
+    
+    try {
+      await FirebaseService.realizarCheckIn(pendingGuest.id);
+      await HistoricoService.adicionarAcesso('checkin', `${pendingGuest.nome} - Mesa ${pendingGuest.mesa}`);
+      setResult({ type: 'success', guest: { ...pendingGuest, checkedIn: true } });
+      showToast('Check-in realizado!', 'success');
+    } catch (err) {
+      console.error('Erro:', err);
+      setError('Erro ao processar');
+      showToast('Erro ao processar', 'error');
+    } finally {
+      setLoading(false);
+      setPendingGuest(null);
+    }
+  };
+
+  const cancelCheckIn = () => {
+    setShowConfirmModal(false);
+    setPendingGuest(null);
   };
 
   return (
@@ -322,6 +349,58 @@ export default function ScannerCheckin({ showToast }) {
           Cada QR Code pode ser usado apenas uma vez.
         </p>
       </div>
+
+      {showConfirmModal && pendingGuest && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'linear-gradient(145deg, #2d2d2d, #1a1a1a)',
+            borderRadius: '16px',
+            padding: '2rem',
+            maxWidth: '400px',
+            width: '90%',
+            textAlign: 'center',
+            border: '1px solid #c9a227'
+          }}>
+            <h2 style={{ color: '#c9a227', marginBottom: '1.5rem' }}>Confirmar Check-in</h2>
+            <p style={{ fontSize: '1.25rem', color: '#fff', marginBottom: '0.5rem' }}>{pendingGuest.nome}</p>
+            <p style={{ color: '#999', marginBottom: '0.5rem' }}>Mesa {pendingGuest.mesa}</p>
+            <p style={{ 
+              color: '#c9a227', 
+              fontWeight: 'bold',
+              marginBottom: '2rem',
+              padding: '0.5rem 1rem',
+              background: 'rgba(201,162,39,0.1)',
+              borderRadius: '8px',
+              display: 'inline-block'
+            }}>{pendingGuest.cargo || 'Convidado'}</p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={cancelCheckIn}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={confirmCheckIn}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
