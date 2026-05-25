@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { FileText, QrCode, RefreshCw } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, FileText, QrCode, RefreshCw } from 'lucide-react';
 import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -14,6 +14,7 @@ export default function GeradorConvite({ showToast = defaultShowToast }) {
   const [loading, setLoading] = useState(true);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [error, setError] = useState(null);
+  const [gerandoPDF, setGerandoPDF] = useState(false);
   const inviteRef = useRef(null);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function GeradorConvite({ showToast = defaultShowToast }) {
     if (!inviteRef.current) return;
 
     try {
+      setGerandoPDF(true);
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(inviteRef.current, {
@@ -82,6 +84,8 @@ export default function GeradorConvite({ showToast = defaultShowToast }) {
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       showToast('Erro ao gerar PDF', 'error');
+    } finally {
+      setGerandoPDF(false);
     }
   };
 
@@ -172,9 +176,9 @@ export default function GeradorConvite({ showToast = defaultShowToast }) {
       </div>
       
       <div style={{ marginTop: '1.5rem' }}>
-        <button className="btn btn-primary" onClick={gerarPDF} disabled={!inviteRef.current}>
+        <button className="btn btn-primary" onClick={gerarPDF} disabled={gerandoPDF}>
           <FileText size={18} />
-          Baixar PDF
+          {gerandoPDF ? 'Gerando PDF...' : 'Baixar PDF'}
         </button>
       </div>
     </div>
