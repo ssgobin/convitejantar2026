@@ -3,7 +3,7 @@ import {
   Users, CheckCircle, Clock, LayoutGrid, 
   Search, Edit, Trash2, QrCode, Download,
   FileSpreadsheet, FileText, X, RefreshCw, Settings,
-  ExternalLink, Share2, FileDown
+  ExternalLink, Share2, FileDown, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -32,6 +32,8 @@ export default function DashboardAdmin({ showToast }) {
   const [showConfig, setShowConfig] = useState(false);
   const [confirmModal, setConfirmModal] = useState({ open: false, title: '', message: '', onConfirm: () => {} });
   const [formData, setFormData] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const cargos = ['Convidado', 'Autoridades', 'Patrocinadores', 'Entidades'];
 
   const loadData = useCallback(async () => {
@@ -89,6 +91,18 @@ export default function DashboardAdmin({ showToast }) {
     
     return matchesSearch && matchesMesa && matchesStatus;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredConvidados.length / itemsPerPage));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedConvidados = filteredConvidados.slice(startIndex, endIndex);
+  const firstVisibleItem = filteredConvidados.length === 0 ? 0 : startIndex + 1;
+  const lastVisibleItem = Math.min(endIndex, filteredConvidados.length);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterMesa, filterStatus, itemsPerPage]);
 
   const openEditModal = (guest) => {
     setFormData({ ...guest });
@@ -367,7 +381,7 @@ export default function DashboardAdmin({ showToast }) {
                 </tr>
               </thead>
               <tbody>
-                {filteredConvidados.map(guest => (
+                {paginatedConvidados.map(guest => (
                   <tr key={guest.id}>
                     <td>
                       {guest.nome}
@@ -446,8 +460,48 @@ export default function DashboardAdmin({ showToast }) {
           </div>
         )}
         
-        <div style={{ marginTop: '1rem', color: 'var(--gray-400)', fontSize: '0.875rem' }}>
-          Mostrando {filteredConvidados.length} de {convidados.length} convidados
+        <div className="pagination-bar">
+          <div className="pagination-info">
+            Mostrando {firstVisibleItem}-{lastVisibleItem} de {filteredConvidados.length} convidados
+            {filteredConvidados.length !== convidados.length && ` filtrados de ${convidados.length}`}
+          </div>
+
+          <div className="pagination-controls">
+            <select
+              className="pagination-select"
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              aria-label="Convidados por página"
+            >
+              <option value={10}>10 por página</option>
+              <option value={25}>25 por página</option>
+              <option value={50}>50 por página</option>
+            </select>
+
+            <button
+              className="icon-btn"
+              type="button"
+              title="Página anterior"
+              onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+              disabled={safeCurrentPage === 1}
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <span className="pagination-page">
+              Página {safeCurrentPage} de {totalPages}
+            </span>
+
+            <button
+              className="icon-btn"
+              type="button"
+              title="Próxima página"
+              onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+              disabled={safeCurrentPage === totalPages}
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
         
         <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
